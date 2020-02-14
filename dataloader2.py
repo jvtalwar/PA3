@@ -1,6 +1,9 @@
 from torch.utils.data import Dataset, DataLoader# For custom data-sets
 import torchvision.transforms as pt_transforms
 import torchvision.transforms.functional as TF
+#import torchsample
+#from torchsample.transforms import RandomRotate
+from skimage.transform import rotate as Rotate
 import numpy as np
 from PIL import Image
 import torch
@@ -82,7 +85,7 @@ labels_classes = [
 ]
 
 max_translate_x, max_translate_y = 0.2, 0.2
-max_rotation = 2
+max_rotation = 10
 
 class CityScapesDataset(Dataset):
 
@@ -96,19 +99,25 @@ class CityScapesDataset(Dataset):
         self.n_class   = n_class
         self.data_size = np.asarray(Image.open(self.data.iloc[0, 0]).convert('RGB')).shape[:2]
         self.data_size = tuple([np.int(s * resize_factor) for s in self.data_size])
+        #(np.int(self.data_size[0]*resize_factor),np.int(self.data_size[0]*resize_factor/2))   
+        
         self.resize_factor = resize_factor
         
         # Add any transformations here
         trans_list = []
         if transforms is not None:
-            if 'translation' in transforms:
-                trans_list.append(pt_transforms.RandomAffine(degrees = 0, translate = (max_translate_x, max_translate_y)))
-            if 'rotation' in transforms:   
-                trans_list.append(pt_transforms.RandomAffine(degrees = max_rotation))
-            if 'hflip' in transforms:
-                trans_list.append(pt_transforms.RandomHorizontalFlip(p=1))
-            if 'crop' in transforms:
-                trans_list.append(pt_transforms.RandomResizedCrop(self.data_size, scale=(0.5, 1), ratio = (1.8, 2.2)))
+            for trans in transforms:
+                if 'translation' == trans:#in transforms:
+                    trans_list.append(pt_transforms.RandomAffine(degrees = 0, translate = (max_translate_x, max_translate_y)))
+                if 'rotation' ==trans: #in transforms:   
+                    trans_list.append(pt_transforms.RandomRotation(degrees = max_rotation))
+                if 'hflip' == trans: # in transforms:
+                    trans_list.append(pt_transforms.RandomHorizontalFlip(p=1))
+                if 'crop' == trans: #in transforms:
+                #print("hello")
+                    trans_list.append(pt_transforms.RandomCrop(512, padding = 0)) #(self.data_size, scale=(0.5, 1), ratio = (1.8, 2.2)))
+                #print(trans_list)
+            #self.transforms = None
             self.transforms = CustomCompose(trans_list)
         else:
             self.transforms = None
@@ -135,8 +144,12 @@ class CityScapesDataset(Dataset):
             
         # applying the transformation on the copy
         if self.transforms is not None:
+            #print(self.transforms)
             img, label = self.transforms(img, label)
-       
+        
+        if img.size[0] != self.data_size[0]:
+            img = pt_transforms.functional.resize(img, self.data_size)
+            label = pt_transforms.functional.resize(label, self.data_size, interpolation = Image.NEAREST)
         # converting to numpy arrays
         img = np.asarray(img.convert('RGB'))
         label      = np.asarray(label)
@@ -160,8 +173,8 @@ class CityScapesDataset(Dataset):
         target = torch.zeros(self.n_class, h, w)
         for c in range(self.n_class):
             target[c][label == c] = 1
-
-        return img, target, label
+        #print("target_size is: " + str(target.size()))
+        return img,target, label
     
 class CustomCompose(pt_transforms.Compose):
     """ This class extends transforms.Compose and contains a list of
@@ -170,22 +183,45 @@ class CustomCompose(pt_transforms.Compose):
     def __init__(self, trans_list):
         super(CustomCompose, self).__init__(trans_list)
         self.transforms = trans_list
+        self.comeAtMeBro = 200 #what the reduced dimesions should be --> assuming a square 
         
     def __call__(self, img, label):
         for t in self.transforms:
             # for affine-derived transformations
             if isinstance(t, pt_transforms.RandomAffine):
                 params = t.get_params(t.degrees, t.translate, t.scale, t.shear, img.size)
-                img = TF.affine(img, *params, resample=t.resample, fillcolor=t.fillcolor)
-                label = TF.affine(label, *params, resample=False, fillcolor=False)
-                print(params)
+                img = TF.affine(img, *params) #, resample=t.resample, fillcolor=t.fillcolor)
+                label = TF.affine(label, *params) #, resample=False, fillcolor=False)
+            if isinstance(t, pt_transforms.RandomRotation):
+                #img = Rotate(img, angle = max_rotation, mode = 'wrap')
+                #label = Rotate(label, angle = max_rotation, mode = 'wrap')
+                if random.random() < 0.3:
+                    #print("rotating...")
+                    img = TF.rotate(img, max_rotation) #, resample=t.resample, fillcolor=t.fillcolor)
+                    label = TF.rotate(label, max_rotation) #, resample=False, fillcolor=False)
+                #print(params)
             if isinstance(t, pt_transforms.RandomHorizontalFlip):
                 if random.random() < 0.5:
+                    #print("flipping")
                     img = TF.hflip(img)
                     label = TF.hflip(label)
-            if isinstance(t, pt_transforms.RandomResizedCrop):
-                i, j, h, w = t.get_params(img, t.scale, t.ratio)
-                print([i, j, h, w, t.scale, t.ratio])
-                img = TF.resized_crop(img, i, j, h, w, t.size, t.interpolation)
-                label = TF.resized_crop(label, i, j, h, w, t.size, Image.NEAREST)
+            if isinstance(t, pt_transforms.RandomCrop):
+                if random.random() < 0.23:
+                    #print("cropping...")
+                    #print("hello?")
+                    #print("The t is:" + str(t))
+                    #print("The paramaters are: " + str(t.get_params(img)) )
+                    cropIndexes = t.get_params(img,output_size=(self.comeAtMeBro, self.comeAtMeBro*2))
+                    i, j, h, w = cropIndexes
+                    img = TF.crop(img, i, j, h, w)
+                    #img = pt_transforms.functional.resize(img, (self.comeAtMeBro*4, self.comeAtMeBro*8))
+                    
+                    label = TF.crop(label, i,j,h,w)
+                    #label = pt_transforms.functional.resize(img, (self.comeAtMeBro*4, self.comeAtMeBro*8))
+                    #img = t.(img)
+                    #label = t.(label)
+                    #i, j, h, w = t.get_params(img) #, t.scale, t.ratio)
+                    #print([i, j, h, w, t.scale, t.ratio])
+                    #img = TF.resized_crop(img, i, j) #, h, w, t.size, t.interpolation)
+                    #label = TF.resized_crop(label, i, j, h, w, t.size, Image.NEAREST)
         return img, label
