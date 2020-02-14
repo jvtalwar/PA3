@@ -39,6 +39,23 @@ def MeanIOU(combined):
 
 
 def pixel_acc(pred, target):
+    #Create a boolean tensor of all the trainID != 255
+    goodFlags = (target > 6) * (target != 29) * (target != 30)* (target != 18) * (target != 16) * (target != 15) * (target != 14) * (target != 10) * (target != 9) 
+    
+    #print("The sum of the non-negative entries is: " + str(goodFlags.sum().item()))
+    
+    #zeroOut the badFlags at the relevant indexes
+    pred = pred*goodFlags
+    target = target*goodFlags
+    
+    #print((pred != 0).sum().item())
+    
+    #get the sum to subtract by since the false indexes for both will now match (both will == 0)
+    funWithFlags = torch.prod(torch.tensor(goodFlags.size()))
+    howManyToSubtract = funWithFlags - goodFlags.sum() #dimensions - all the instances where the flags are good gives the sum of bad flags
+    
     bringIt = torch.eq(pred, target) #Do the pixel predictions match? --> returns a T/F tensor of same dimensions as pred and target
-    accuracy = 100* (bringIt.sum().item()/torch.prod(torch.tensor(bringIt.size())).item()) 
+    numerator = bringIt.sum().item() - howManyToSubtract.item()
+    denom = torch.prod(torch.tensor(bringIt.size())).item() - howManyToSubtract.item()
+    accuracy = 100*(numerator/denom) 
     return accuracy
