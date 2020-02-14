@@ -1,10 +1,12 @@
 from torch.utils.data import Dataset, DataLoader# For custom data-sets
-import torchvision.transforms as transforms
+import torchvision.transforms as pt_transforms
+import torchvision.transforms.functional as TF
 import numpy as np
 from PIL import Image
 import torch
 import pandas as pd
 from collections import namedtuple
+import random
 
 n_class    = 34
 means     = np.array([103.939, 116.779, 123.68]) / 255. # mean of three channels in the order of BGR
@@ -79,14 +81,38 @@ labels_classes = [
     Label(  'bicycle'              , 33 ,       18 , 'vehicle'         , 7       , True         , False        , (119, 11, 32) )
 ]
 
+max_translate_x, max_translate_y = 500, 250
+max_rotation = 6
+
 class CityScapesDataset(Dataset):
 
     def __init__(self, csv_file, n_class=n_class, transforms=None):
+        """ 
+        Transforms is a list that include the list of transformations to be applied
+        """
+        
         self.data      = pd.read_csv(csv_file)
         self.means     = means
         self.n_class   = n_class
+        self.data_size = np.asarray(Image.open(self.data.iloc[0, 0]).convert('RGB')).shape[:2]
+     
         # Add any transformations here
-
+        trans_list = []
+        if transforms is not None:
+            if 'translation' in transforms:
+                trans_list.append(pt_transforms.RandomAffine(degrees = 0, translate = (max_translate_x, max_translate_y)))
+            if 'rotation' in transforms:   
+                trans_list.append(pt_transforms.RandomAffine(degrees = max_rotation))
+            if 'hflip' in transforms:
+                trans_list.append(pt_transforms.RandomHorizontalFlip(p=1))
+            if 'crop' in transforms:
+                trans_list.append(pt_transforms.RandomResizedCrop(self.data_size, scale=(0.8, 1.2)))
+            print(trans_list)
+            self.transforms = CustomCompose(trans_list)
+        else:
+            self.transforms = None
+        
+        
     def __len__(self):
         return len(self.data)
 
@@ -104,10 +130,21 @@ class CityScapesDataset(Dataset):
         img[1] -= self.means[1]
         img[2] -= self.means[2]
 
+        
+        # applying the transformation
+        if self.transforms is not None:
+            img, label = self.transforms(img, label)
+        
+        
         # convert to tensor
         img = torch.from_numpy(img.copy()).float()
         label = torch.from_numpy(label.copy()).long()
 
+
+#         # applying the transformation
+#         if self.transforms is not None:
+#             img, label = self.transforms(img, label)
+        
         # create one-hot encoding
         h, w = label.shape
         target = torch.zeros(self.n_class, h, w)
@@ -115,3 +152,25 @@ class CityScapesDataset(Dataset):
             target[c][label == c] = 1
 
         return img, target, label
+    
+class CustomCompose(pt_transforms.Compose):
+    def __init__(self, trans_list):
+        super(CustomCompose, self).__init__(trans_list)
+        self.transforms = trans_list
+        
+    def __call__(self, img, label):
+        for t in self.transforms:
+            if isinstance(t, pt_transforms.RandomAffine):
+                params = self.get_params(t.degrees, t.translate, t.scale, t.shear, img.size)
+                img_transed = TF.affine(img, *params, resample=t.resample, fillcolor=t.fillcolor)
+                lbl_transed = TF.affine(label, *params, resample=False, fillcolor=False)
+                img = img_transed, label = lbl_transed
+            if isinstance(t, pt_transforms.RandomHorizontalFlip):
+                if random.random() < 0.5:
+                    img = TF.hflip(img)
+                    label = TF.hflip(label)
+            if isinstance(t, pt_transforms.RandomResizedCrop):
+                i, j, h, w = self.get_params(img, t.scale, t.ratio)
+                img = TF.resized_crop(img, i, j, h, w, t.size, t.interpolation)
+                label = TF.resized_crop(label, i, j, h, w, t.size, Image.NEAREST)
+        return img
