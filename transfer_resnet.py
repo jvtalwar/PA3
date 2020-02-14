@@ -1,44 +1,64 @@
 import torch.nn as nn
 import torchvision
+from collections import OrderedDict
 
 
-class FCN(nn.Module):
+class TransResNet(nn.Module):
 
-    def __init__(self, n_class, base_model = 'resnet18', fine_tune = False):
+    def __init__(self, n_class, base_model = 'resnet18'):
         super().__init__()
         self.n_class = n_class
         
-        self.decoder = torchvision.models.resnet18(pretrained = True)
-        for param in self.decoder.parameters():
+        # defining basic model by ablating the last two layers (average and linear) from ResNet
+        resnet = torchvision.models.resnet18(pretrained = True)
+        self.encoder = nn.Sequential(*list(resnet.children())[:-2])
+        for param in self.encoder.parameters():
+            # freezing the learning for ResNet
             param.requires_grad = False
         
-        self.base_mod.fc = nn.Linear(self.base_mod.fc.in_features, out_features = n_class)
-
-        self.conv1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd1    = nn.BatchNorm2d(32)
-        self.conv2   = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd2    = nn.BatchNorm2d(64)
-        self.conv3   = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd3    = nn.BatchNorm2d(128)
-        self.conv4   = nn.Conv2d(128,256, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd4    = nn.BatchNorm2d(256)
-        self.conv5   = nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd5    = nn.BatchNorm2d(512)
         self.relu    = nn.ReLU(inplace=True)
-        self.deconv1 = nn.ConvTranspose2d(512, 512, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn1     = nn.BatchNorm2d(512)
-        self.deconv2 = nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn2     = nn.BatchNorm2d(256)
-        self.deconv3 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn3     = nn.BatchNorm2d(128)
-        self.deconv4 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn4     = nn.BatchNorm2d(64)
-        self.deconv5 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn5     = nn.BatchNorm2d(32)
-        self.classifier = nn.Conv2d(32,n_class, kernel_size=1)
         
+        # output of the convolutional encoder in resnet is 512 and compatible with our decoder
+        self.decoder = nn.Sequential(OrderedDict([('deconv1', self.deconv_internal(512, 512)),
+                                    ('deconv2', self.deconv_internal(512, 256)),
+                                    ('deconv3', self.deconv_internal(256, 128)),
+                                    ('deconv4', self.deconv_internal(128, 64)),
+                                    ('deconv5', self.deconv_internal(64, 32)),
+                                    ('output', nn.Conv2d(32,n_class, kernel_size=1))]))
+        
+#         self.deconv1 = nn.ConvTranspose2d(512, 512, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+#         self.bn1     = nn.BatchNorm2d(512)
+#         self.deconv2 = nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+#         self.bn2     = nn.BatchNorm2d(256)
+#         self.deconv3 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+#         self.bn3     = nn.BatchNorm2d(128)
+#         self.deconv4 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+#         self.bn4     = nn.BatchNorm2d(64)
+#         self.deconv5 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+#         self.bn5     = nn.BatchNorm2d(32)
+#         self.classifier = nn.Conv2d(32,n_class, kernel_size=1)
+    
+    def deconv_internal(self, in_channels, out_channels):
+        """ Layers consisting of one deconvolution layer and one ReLU """
+        return nn.Sequential(nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1), nn.BatchNorm2d(out_channels))
+    
+    def initialize_weights(self, weight_func):
+        """For initializing the decoder weights, without changing the encoder weights"""
+        self.decoder.apply(weight_func)
+        return 
+    
     def forward(self, x):
+        # encoder 
+        x = self.encoder(x)
+        # A ReLU after encoding with resnet
+        x = self.relu(x)
         
-        x = self.base_mod(x)
-        
-        return score  # size=(N, n_class, x.H/1, x.W/1)
+        # the rest of the decoder
+        x = self.decoder(x)
+#         x = self.relu(self.bn1(self.deconv1(x)))
+#         x = self.relu(self.bn2(self.deconv2(x)))
+#         x = self.relu(self.bn3(self.deconv3(x)))
+#         x = self.relu(self.bn4(self.deconv4(x)))
+#         x = self.relu(self.bn5(self.deconv5(x)))
+#         score = self.classifier(x)                      
+        return x  # size=(N, n_class, x.H/1, x.W/1)
