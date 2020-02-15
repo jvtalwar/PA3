@@ -2,6 +2,7 @@ import torch
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy as copy
 
 def iou(pred, target, n_class): #pass in a 3d tensor of non one-hot encoded vectors --> number of images,H,W
     dontInclude = set([0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]) #These are the classes with TrainId == 255
@@ -95,7 +96,7 @@ class EarlyStop:
         elif (valLoss < self.prevLoss):
             self.virtue = 0
             self.prevLoss = valLoss
-            self.theOneModelToRuleThemAll = bottomOfTheBarrel
+            self.theOneModelToRuleThemAll = copy(bottomOfTheBarrel)
             print("Going down no need to do anything... good job!")
         else:
             print("Entering the thunderdome...")
