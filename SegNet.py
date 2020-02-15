@@ -22,27 +22,27 @@ class SegNet(nn.Module):
         self.conv2Two = nn.Conv2d(128, 128, kernel_size=3, padding=1, dilation=1)
         self.conv3One = nn.Conv2d(128, 256, kernel_size=3, padding=1, dilation=1)
         self.conv3Two = nn.Conv2d(256, 256, kernel_size=3, padding=1, dilation=1)
-        self.conv3Three = nn.Conv2d(256, 256, kernel_size=3, padding=1, dilation=1)
+        #self.conv3Three = nn.Conv2d(256, 256, kernel_size=3, padding=1, dilation=1)
         self.conv4One = nn.Conv2d(256, 512, kernel_size=3, padding=1, dilation=1)
         self.conv4Two = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.conv4Three = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.conv5One = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.conv5Two = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.conv5Three = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.conv4Three = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.conv5One = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.conv5Two = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.conv5Three = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
         
-        self.deconv5One = nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.deconv5Two = nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.deconv5Three = nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.deconv4One = nn.ConvTranspose2d(512, 256, kernel_size=3, padding=1, dilation=1)
-        self.deconv4Two = nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.deconv4Three = nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, dilation=1)
-        self.deconv3One = nn.ConvTranspose2d(256, 128, kernel_size=3, padding=1, dilation=1)
-        self.deconv3Two = nn.ConvTranspose2d(256, 256, kernel_size=3, padding=1, dilation=1)
-        self.deconv3Three = nn.ConvTranspose2d(256, 256, kernel_size=3, padding=1, dilation=1)
-        self.deconv2One = nn.ConvTranspose2d(128, 64, kernel_size=3, padding=1, dilation=1)
-        self.deconv2Two = nn.ConvTranspose2d(128, 128, kernel_size=3, padding=1, dilation=1)
-        self.deconv1Two = nn.ConvTranspose2d(64, 64, kernel_size=3, padding=1, dilation=1)
-        self.deconv1One = nn.ConvTranspose2d(64, n_class, kernel_size=3, padding=1, dilation=1)
+        #self.deconv5One = nn.ConvTranspose(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.deconv5Two = nn.ConvTranspose(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.deconv5Three = nn.ConvTranspose(512, 512, kernel_size=3, padding=1, dilation=1)
+        self.deconv4One = nn.Conv2d(512, 256, kernel_size=3, padding=1, dilation=1)
+        self.deconv4Two = nn.Conv2d(512, 512, kernel_size=3, padding=1, dilation=1)
+        #self.deconv4Three = nn.ConvTranspose(512, 512, kernel_size=3, padding=1, dilation=1)
+        self.deconv3One = nn.Conv2d(256, 128, kernel_size=3, padding=1, dilation=1)
+        self.deconv3Two = nn.Conv2d(256, 256, kernel_size=3, padding=1, dilation=1)
+        #self.deconv3Three = nn.ConvTranspose(256, 256, kernel_size=3, padding=1, dilation=1)
+        self.deconv2One = nn.Conv2d(128, 64, kernel_size=3, padding=1, dilation=1)
+        self.deconv2Two = nn.Conv2d(128, 128, kernel_size=3, padding=1, dilation=1)
+        self.deconv1Two = nn.Conv2d(64, 64, kernel_size=3, padding=1, dilation=1)
+        self.deconv1One = nn.Conv2d(64, n_class, kernel_size=1)
         
         #batchnorm
         self.bn1 = nn.BatchNorm2d(64)
@@ -63,7 +63,7 @@ class SegNet(nn.Module):
         self.unpool2 = nn.MaxUnpool2d(2,2)
         self.unpool3 = nn.MaxUnpool2d(2,2)
         self.unpool4 = nn.MaxUnpool2d(2,2)
-        self.unpool5 = nn.MaxUnpool2d(2,2)
+        #self.unpool5 = nn.MaxUnpool2d(2,2)
         
     def forward(self, x):
         
@@ -82,35 +82,36 @@ class SegNet(nn.Module):
         
         x = self.relu(self.bn3(self.conv3One(x)))
         x = self.relu(self.bn3(self.conv3Two(x)))
-        x = self.relu(self.bn3(self.conv3Three(x)))
+        #x = self.relu(self.bn3(self.conv3Three(x)))
         tres = x.size()
         x, thirdIndexes = self.mp3(x)
         
         x = self.relu(self.bn4and5(self.conv4One(x)))
         x = self.relu(self.bn4and5(self.conv4Two(x)))
-        x = self.relu(self.bn4and5(self.conv4Three(x)))
+        #x = self.relu(self.bn4and5(self.conv4Three(x)))
         cuatro = x.size()
         x, fourthIndexes = self.mp4(x)
         
-        x = self.relu(self.bn4and5(self.conv5One(x)))
-        x = self.relu(self.bn4and5(self.conv5Two(x)))
-        x = self.relu(self.bn4and5(self.conv5Three(x)))
-        cinco = x.size()
-        x, fifthIndexes = self.mp5(x)
+        #x = self.relu(self.bn4and5(self.conv5One(x)))
+        #x = self.relu(self.bn4and5(self.conv5Two(x)))
+        #x = self.relu(self.bn4and5(self.conv5Three(x)))
+        #cinco = x.size()
+        #x, fifthIndexes = self.mp5(x)
         
         #DECODER:
-        x = self.unpool5(x, fifthIndexes, output_size = cinco)
-        x = self.relu(self.bn4and5(self.deconv5Three(x)))
-        x = self.relu(self.bn4and5(self.deconv5Two(x)))
-        x = self.relu(self.bn4and5(self.deconv5One(x)))
+        
+        #x = self.unpool5(x, fifthIndexes, output_size = cinco)
+        #x = self.relu(self.bn4and5(self.deconv5Three(x)))
+        #x = self.relu(self.bn4and5(self.deconv5Two(x)))
+        #x = self.relu(self.bn4and5(self.deconv5One(x)))
         
         x = self.unpool4(x, fourthIndexes, output_size = cuatro)
-        x = self.relu(self.bn4and5(self.deconv4Three(x)))
+        #x = self.relu(self.bn4and5(self.deconv4Three(x)))
         x = self.relu(self.bn4and5(self.deconv4Two(x)))
         x = self.relu(self.bn3(self.deconv4One(x)))
         
         x = self.unpool3(x, thirdIndexes, output_size = tres)
-        x = self.relu(self.bn3(self.deconv3Three(x)))
+        #x = self.relu(self.bn3(self.deconv3Three(x)))
         x = self.relu(self.bn3(self.deconv3Two(x)))
         x = self.relu(self.bn2(self.deconv3One(x)))
         
@@ -123,6 +124,7 @@ class SegNet(nn.Module):
         x = self.deconv1One(x)
         
         return x
+        
         
         
         
