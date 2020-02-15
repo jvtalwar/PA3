@@ -70,27 +70,26 @@ class SegNet(nn.Module):
         
         #need the size and indexes at each layer for the unpooling operation
         #ENCODER:
+        uno = x.size()
         x = self.relu(self.bn1(self.conv1One(x)))
         x = self.relu(self.bn1(self.conv1Two(x)))
-        uno = x.size()
         x, firstIndexes = self.mp1(x)
         
-        
+        dos = x.size()
         x = self.relu(self.bn2(self.conv2One(x)))
         x = self.relu(self.bn2(self.conv2Two(x)))
-        dos = x.size()
         x, secondIndexes = self.mp2(x)
         
+        tres = x.size()
         x = self.relu(self.bn3(self.conv3One(x)))
         x = self.relu(self.bn3(self.conv3Two(x)))
         #x = self.relu(self.bn3(self.conv3Three(x)))
-        tres = x.size()
         x, thirdIndexes = self.mp3(x)
         
+        cuatro = x.size()
         x = self.relu(self.bn4and5(self.conv4One(x)))
         #x = self.relu(self.bn4and5(self.conv4Two(x)))
         #x = self.relu(self.bn4and5(self.conv4Three(x)))
-        cuatro = x.size()
         x, fourthIndexes = self.mp4(x)
         
         #x = self.relu(self.bn4and5(self.conv5One(x)))
@@ -126,3 +125,8 @@ class SegNet(nn.Module):
         x = self.finalConv(x)
         
         return x
+        
+        
+        
+        
+        
