@@ -10,10 +10,16 @@ class TransResNet(nn.Module):
         self.n_class = n_class
         
         # defining basic model by ablating the last two layers (average and linear) from ResNet
-        resnet = torchvision.models.resnet18(pretrained = True)
+        if base_model == 'resnet18':
+            resnet = torchvision.models.resnet18(pretrained = True)
+        elif base_model == 'resnet34':
+            resnet = torchvision.models.resnet34(pretrained=True)
+
         self.encoder = nn.Sequential(*list(resnet.children())[:-2])
+        del resnet
+        
+        # freezing the learning for ResNet
         for param in self.encoder.parameters():
-            # freezing the learning for ResNet
             param.requires_grad = False
         
         self.relu    = nn.ReLU(inplace=True)
@@ -55,10 +61,5 @@ class TransResNet(nn.Module):
         
         # the rest of the decoder
         x = self.decoder(x)
-#         x = self.relu(self.bn1(self.deconv1(x)))
-#         x = self.relu(self.bn2(self.deconv2(x)))
-#         x = self.relu(self.bn3(self.deconv3(x)))
-#         x = self.relu(self.bn4(self.deconv4(x)))
-#         x = self.relu(self.bn5(self.deconv5(x)))
-#         score = self.classifier(x)                      
+        
         return x  # size=(N, n_class, x.H/1, x.W/1)
