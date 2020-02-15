@@ -1,5 +1,6 @@
 from torchvision import utils
-from basic_fcn import *
+# from basic_fcn import *
+from transfer_resnet import *
 from dataloader2 import *
 from utils import *
 import torchvision
@@ -10,7 +11,7 @@ import time
 import matplotlib.pyplot as plt
 
 # Update this for your model
-best_model_name = "basic_fcn_model_unweighted"
+best_model_name = "resnet34_model"
 
 training_batch = 4
 val_batch = 4
@@ -279,25 +280,25 @@ if __name__ == "__main__":
     
     # Non-weighted vs weighted loss definition
     criterion = nn.CrossEntropyLoss()
-    weighted_criterion = nn.CrossEntropyLoss(weight=class_weights)
+    weighted_criterion = nn.CrossEntropyLoss()
     
     # Build model
-    fcn_model = FCN(n_class=n_class)
-    fcn_model.apply(init_weights)
+    trans_model = TransResNet(n_class=n_class)
+    trans_model.initialize_weights(init_weights)
     #fcn_model = torch.load('best_model')  # For when we have a best model to test
-    optimizer = optim.Adam(fcn_model.parameters(), lr=5e-3)
+    optimizer = optim.Adam(trans_model.parameters(), lr=5e-3)
     
     # Move model to gpu
     use_gpu = torch.cuda.is_available()
     if use_gpu:
-        fcn_model = fcn_model.cuda()
+        trans_model = trans_model.cuda()
     
     # Establish baseline metrics
-    train_0 = train0(fcn_model, criterion)
-    validation_0 = val(fcn_model, criterion, 0)  # show the accuracy before training
+    train_0 = train0(trans_model, criterion)
+    validation_0 = val(trans_model, criterion, 0)  # show the accuracy before training
     
     # Train for epochs with patience
-    training_losses, training_accuracies, validation_losses, validation_accuracies, validation_ious = train(fcn_model, criterion, epochs, be_patient)
+    training_losses, training_accuracies, validation_losses, validation_accuracies, validation_ious = train(trans_model, criterion, epochs, be_patient)
         
     # Add in the baseline
     training_losses.insert(0, train_0[0])
@@ -365,7 +366,7 @@ if __name__ == "__main__":
     iou_df.to_csv('{}.csv'.format(best_model_name))
     
     # Test image with overlayed classified labels
-    test_model = FCN(n_class=n_class)
+    test_model = trans_model(n_class=n_class)
     test_model.load_state_dict(torch.load('{}.pt'.format(best_model_name)))
     for i_batch, sample_batched in enumerate(test_loader):
         test_image = sample_batched[0]
