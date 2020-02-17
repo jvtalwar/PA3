@@ -5,7 +5,7 @@ In this submission folder, the following files relating to this assignment are i
 1) final_model_train.ipynb/py -- General script for training and testing a given model. See below for the instructions on how to      change parameters to produce desired outputs for each model
 2) basic_fcn.py -- baseline model implementation in PyTorch
 3) ExperiNet.py -- experimental model implementation in PyTorch
-4) TransResNet.py -- transfer learning model implementation in PyTorch using ResNet32
+4) TransResNet.py -- transfer learning model implementation in PyTorch using ResNet18
 5) unet.py -- our U-Net implementation in PyTorch
 6) dataloader.py -- updated dataloader file for loading data adding in transformations
 7) utils.py -- all utility functions used in training (includes accuracy, IoU, early stopping etc.)
@@ -48,8 +48,8 @@ E. Transfer ResNet:
     
 F. UNet:
     1. Change model name after import statements to desired output file name
-    2. Change validation batch size to 4 at line 24
+    2. Change validation batch size to 1 at line 24
     3. Change transforms passed into 'train_dataset' from 'None' to 
        '['hflip',  'rotation']
-    4. Make sure you specify 50 epochs with patience set to 3
-    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an          object of class 'ExperiNet' should be instantiated at these two lines)
+    4. Make sure you specify 50 epochs with patience set to 5
+    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an          object of class 'unet' should be instantiated at these two lines)
