@@ -37,14 +37,14 @@ D. ExperiNet:
     3. Change transforms passed into 'train_dataset' from 'None' to 
        '['hflip',  'rotation']
     4. Make sure you specify 50 epochs with patience set to 3
-    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an              object of class 'ExperiNet' should be instantiated at these two lines)
+    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an          object of class 'ExperiNet' should be instantiated at these two lines)
     
 E. Transfer ResNet:
     1. Change model name after import statements to desired output file name
     3. Change transforms passed into 'train_dataset' from 'None' to 
        '['hflip',  'rotation']
     4. Make sure you specify 50 epochs with patience set to 5
-    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an              object of class 'TransResNet' should be instantiated at these two lines)
+    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an          object of class 'TransResNet' should be instantiated at these two lines)
     
 F. UNet:
     1. Change model name after import statements to desired output file name
@@ -52,4 +52,4 @@ F. UNet:
     3. Change transforms passed into 'train_dataset' from 'None' to 
        '['hflip',  'rotation']
     4. Make sure you specify 50 epochs with patience set to 3
-    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an              object of class 'ExperiNet' should be instantiated at these two lines)
+    5. Make sure that you are loading the appropriate model implementation in line 293 and line 275 of the .py file (i.e. an          object of class 'ExperiNet' should be instantiated at these two lines)
